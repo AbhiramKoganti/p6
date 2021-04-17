@@ -7,6 +7,72 @@
 #include "proc.h"
 #include "elf.h"
 
+int addtoworkingset(char* va){
+  struct proc* curproc = myproc();
+  
+
+  if(curproc->queue_size < CLOCKSIZE) {
+    curproc->clock_queue[curproc->queue_size].va = va;
+    curproc->clock_queue[curproc->queue_size].abit = 1;
+    curproc->queue_size++;
+    return 0;
+  }
+  while(1) {
+    cprintf("Evicted a female");
+    //struct clock_queue_slot* cur_hand = &curproc->clock_queue[curproc->hand];
+    if(curproc->clock_queue[curproc->hand].abit == 0)
+      break;
+    curproc->clock_queue[curproc->hand].abit = 0;
+    curproc->hand = (curproc->hand + 1) % CLOCKSIZE;
+  }
+  mencrypt(curproc->clock_queue[curproc->hand].va, 1);
+  curproc->clock_queue[curproc->hand].va = va;
+  curproc->clock_queue[curproc->hand].abit = 1;
+  curproc->hand = (curproc->hand + 1) % CLOCKSIZE;
+  return 0;
+}
+int removepage(char* va) {
+ 
+  struct proc* curproc = myproc();
+  for(int i = curproc->head; i < curproc->head + curproc->queue_size; i++){
+    if(curproc->clock_queue[i % CLOCKSIZE].va == va){
+      for(int j = i; j+1 < curproc->hand + curproc->queue_size; j++){
+       curproc->clock_queue[j % CLOCKSIZE] = curproc->clock_queue[(j+1) % CLOCKSIZE];
+     }
+     //if(i % CLOCKSIZE == curproc->hand){
+     //  if(i == curproc->head + curproc->queue_size)
+     //    curproc->hand = curproc->head;
+     //  else
+     //    curproc->hand = (curproc->hand + 1) % CLOCKSIZE;
+     //}    
+     if(i % CLOCKSIZE < curproc->head || curproc->hand > i)
+       curproc->hand = (curproc->hand - 1) % CLOCKSIZE;
+
+     //if(i == curproc->head) {
+     //  if(curproc->queue_size > 1)
+     //    curproc->head = (curproc->head + 1) % CLOCKSIZE;
+     
+    // }
+
+     curproc->queue_size--;
+     return 0;
+   }
+ }
+ return 0;
+}
+
+
+int inwset(char* va){
+  struct proc *curproc = myproc();
+  for(int i = 0; i < curproc->queue_size; i++){
+    if(curproc->clock_queue[i % CLOCKSIZE].va == va){
+      cprintf("Found %p", va);
+      return 1;
+  }
+  }
+  return 0;
+}
+
 extern char data[];  // defined by kernel.ld
 pde_t *kpgdir;  // for use in scheduler()
 
@@ -16,7 +82,6 @@ void
 seginit(void)
 {
   struct cpu *c;
-
   // Map "logical" addresses to virtual addresses using identity map.
   // Cannot share a CODE descriptor for both kernel and user
   // because it would have to have DPL_USR, but the CPU forbids
@@ -265,9 +330,15 @@ allocuvm(pde_t *pgdir, uint oldsz, uint newsz)
 int
 deallocuvm(pde_t *pgdir, uint oldsz, uint newsz)
 {
+ 
+  struct proc* curproc = myproc();
+  if(pgdir != curproc->pgdir){
+    curproc = curproc->child;
+  }
+
   pte_t *pte;
   uint a, pa;
-
+ 
   if(newsz >= oldsz)
     return oldsz;
 
@@ -427,7 +498,7 @@ int mdecrypt(char *virtual_addr) {
     *slider = ~*slider;
     slider++;
   }
-
+  addtoworkingset(virtual_addr);
   return 0;
 }
 
@@ -472,15 +543,24 @@ int mencrypt(char *virtual_addr, int len) {
   return 0;
 }
 
-int getpgtable(struct pt_entry* entries, int num) {
+int getpgtable(struct pt_entry* entries, int num, int wsetOnly) {
   struct proc * me = myproc();
-
+  if(wsetOnly != 0 && wsetOnly != 1)
+    return -1;
   int index = 0;
   pte_t * curr_pte;
   //reverse order
-
+  
   for (void * i = (void*) PGROUNDDOWN(((int)me->sz)); i >= 0 && index < num; i-=PGSIZE) {
     //walk through the page table and read the entries
+    
+
+    if(wsetOnly){
+      if(!inwset(i)) {
+        num--; 
+	continue;
+      }
+    }
     //Those entries contain the physical page number + flags
     curr_pte = walkpgdir(me->pgdir, i, 0);
 
@@ -512,6 +592,7 @@ int getpgtable(struct pt_entry* entries, int num) {
 int dump_rawphymem(uint physical_addr, char * buffer) {
   //note that copyout converts buffer to a kva and then copies
   //which means that if buffer is encrypted, it won't trigger a decryption request
+  *buffer = *buffer;
   int retval = copyout(myproc()->pgdir, (uint) buffer, (void *) P2V(physical_addr), PGSIZE);
   if (retval)
     return -1;

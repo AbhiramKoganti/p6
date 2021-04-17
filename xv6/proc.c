@@ -111,7 +111,9 @@ found:
   p->context = (struct context*)sp;
   memset(p->context, 0, sizeof *p->context);
   p->context->eip = (uint)forkret;
-
+  p->queue_size = 0;
+  p->hand = 0;
+  p->head = 0;
   return p;
 }
 
@@ -165,10 +167,21 @@ growproc(int n)
   if(n > 0){
     if((sz = allocuvm(curproc->pgdir, sz, sz + n)) == 0)
       return -1;
+    mencrypt((void*)PGROUNDDOWN((int)curproc->sz), (PGROUNDUP(n))/PGSIZE);
   } else if(n < 0){
+    for(int i = 0; i - 1< - n / PGSIZE ; i--)  
+      removepage((char*)PGROUNDDOWN((int)curproc->sz + i*PGSIZE));
     if((sz = deallocuvm(curproc->pgdir, sz, sz + n)) == 0)
       return -1;
   }
+  
+ // for (void * i = (void*) PGROUNDDOWN(((int)curproc->sz)); i >= 0; i-=PGSIZE) {
+   // if(mencrypt(i, 1) != 0)
+    //  break;
+  //}
+    //walk through the page table and read the entries
+    //Those entries contain the physical page number + flags
+
   curproc->sz = sz;
 
   switchuvm(curproc);
@@ -197,6 +210,7 @@ fork(void)
     np->state = UNUSED;
     return -1;
   }
+  curproc->child = np;
   np->sz = curproc->sz;
   np->parent = curproc;
   *np->tf = *curproc->tf;

@@ -32,6 +32,11 @@ struct context {
   uint eip;
 };
 
+struct clock_queue_slot {
+  char* va;
+  uint abit:1;
+};
+
 enum procstate { UNUSED, EMBRYO, SLEEPING, RUNNABLE, RUNNING, ZOMBIE };
 
 // Per-process state
@@ -42,6 +47,7 @@ struct proc {
   enum procstate state;        // Process state
   int pid;                     // Process ID
   struct proc *parent;         // Parent process
+  struct proc *child;
   struct trapframe *tf;        // Trap frame for current syscall
   struct context *context;     // swtch() here to run process
   void *chan;                  // If non-zero, sleeping on chan
@@ -49,6 +55,10 @@ struct proc {
   struct file *ofile[NOFILE];  // Open files
   struct inode *cwd;           // Current directory
   char name[16];               // Process name (debugging)
+  struct clock_queue_slot clock_queue[CLOCKSIZE]; 
+  int queue_size;
+  int head;
+  int hand;
 };
 
 // Process memory is laid out contiguously, low addresses first:

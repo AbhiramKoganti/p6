@@ -122,6 +122,7 @@ int sys_mencrypt(void) {
 int sys_getpgtable(void) {
   struct pt_entry * entries; 
   int num;
+  int wsetOnly;
 
   if(argint(1, &num) < 0)
 
@@ -131,7 +132,10 @@ int sys_getpgtable(void) {
   if(argptr(0, (char**)&entries, num*sizeof(struct pt_entry)) < 0){
     return -1;
   }
-  return getpgtable(entries, num);
+  if(argint(2, &wsetOnly) < 0) {
+    return -1;
+  }
+  return getpgtable(entries, num, wsetOnly);
 }
 
 //changed: added wrapper here
