@@ -1,5 +1,5 @@
 80100000 .text
-8010904c .rodata
+80109118 .rodata
 8010a000 .data
 8010c5a0 .bss
 00000000 .debug_line
@@ -121,8 +121,8 @@
 80107b6f lgdt
 80107b99 ltr
 80107bb0 lcr3
-80108230 walkpgdir
-801082ca mappages
+801080a9 walkpgdir
+8010833a mappages
 8010c4a0 kmap
 80100a50 consoleread
 80107ac7 vector242
@@ -152,7 +152,7 @@
 80107539 vector122
 80106815 sys_sbrk
 80114800 ioapicid
-80107d1b removepage
+80107bbc removepage
 801076bf vector156
 80107aeb vector245
 801146d4 ioapic
@@ -206,9 +206,9 @@
 80105b00 sys_read
 8010799b vector217
 801057d6 fetchint
-80108386 setupkvm
+801083f6 setupkvm
 80105678 memcpy
-80108933 freevm
+801089a3 freevm
 80107106 vector1
 801077c7 vector178
 80107245 vector38
@@ -219,11 +219,11 @@
 80101c71 iput
 801075ab vector133
 80107380 vector73
-80108c2e mdecrypt
+80108c9e mdecrypt
 8010762f vector144
 80107b57 vector254
 801014cb readsb
-80108ce2 mencrypt
+80108d61 mencrypt
 8010c000 nextpid
 8010747c vector101
 80107953 vector211
@@ -233,7 +233,7 @@
 801010a0 fileinit
 80105268 initlock
 8010756f vector128
-80108b8c copyout
+80108bfc copyout
 801073c8 vector81
 80104e1c sleep
 801031aa microdelay
@@ -264,8 +264,8 @@
 801074e8 vector113
 80102d18 freerange
 80107554 vector125
-80108744 allocuvm
-80107e6a inwset
+801087b4 allocuvm
+80107d0b inwset
 80106ab1 trapret
 8010798f vector216
 80107326 vector63
@@ -295,7 +295,7 @@
 80107a1f vector228
 80107269 vector42
 801074f1 vector114
-80108b33 uva2ka
+80108ba3 uva2ka
 801077a3 vector175
 80107623 vector143
 801010c2 filealloc
@@ -306,7 +306,7 @@
 80107617 vector142
 80107473 vector100
 801078db vector201
-801089d0 clearpteu
+80108a40 clearpteu
 80104496 myproc
 80106af7 tvinit
 8010730b vector60
@@ -339,7 +339,7 @@
 80107593 vector131
 80107b3f vector252
 8010138b filewrite
-80107bbc addtoworkingset
+80108143 addtoworkingset
 801070fd vector0
 80105881 argint
 80100c30 exec
@@ -365,7 +365,7 @@
 80101188 fileclose
 801036d7 begin_op
 8010768f vector152
-80108423 kvmalloc
+80108493 kvmalloc
 80107a37 vector230
 80105692 strncmp
 8010723c vector37
@@ -375,7 +375,7 @@
 801041bc pipewrite
 801056ec strncpy
 8010736e vector71
-80108a15 copyuvm
+80108a85 copyuvm
 80112060 ftable
 801076ef vector160
 801058b2 argptr
@@ -403,7 +403,7 @@
 80112a60 sb
 8010528e acquire
 80107a07 vector226
-80108e05 getpgtable
+80108e9a getpgtable
 80102693 nameiparent
 801072a8 vector49
 8010727b vector44
@@ -421,7 +421,7 @@
 8010552d memset
 80107a4f vector232
 80103a14 main
-8010843f switchkvm
+801084af switchkvm
 801074a9 vector106
 801079bf vector220
 80107419 vector90
@@ -452,7 +452,7 @@
 80118140 idt
 801079a7 vector218
 801043d9 pinit
-8010884d deallocuvm
+801088bd deallocuvm
 801079fb vector225
 80103165 lapicid
 80107833 vector187
@@ -502,7 +502,7 @@
 80107b03 vector247
 801071b5 vector22
 801078e7 vector202
-80107ed6 seginit
+80107d4f seginit
 80101d45 iunlockput
 80107377 vector72
 801072de vector55
@@ -521,9 +521,9 @@
 0000002c _binary_initcode_size
 80107653 vector147
 801050d5 initsleeplock
-80108ff1 dump_rawphymem
+801090bd dump_rawphymem
 80102785 ideinit
-80108673 loaduvm
+801086e3 loaduvm
 80107497 vector104
 80107503 vector116
 80114dc0 ptable
@@ -538,7 +538,7 @@
 80101782 iinit
 80103f8c picinit
 80107923 vector207
-801085ff inituvm
+8010866f inituvm
 80107857 vector190
 80107aa3 vector239
 8010743d vector94
@@ -567,7 +567,7 @@
 8010748e vector103
 80106458 sys_mknod
 801031b4 lapicstartap
-8010845c switchuvm
+801084cc switchuvm
 8010541a pushcli
 80102cf0 kinit2
 8010715c vector11

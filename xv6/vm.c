@@ -7,30 +7,7 @@
 #include "proc.h"
 #include "elf.h"
 
-int addtoworkingset(char* va){
-  struct proc* curproc = myproc();
-  
 
-  if(curproc->queue_size < CLOCKSIZE) {
-    curproc->clock_queue[curproc->queue_size].va = va;
-    curproc->clock_queue[curproc->queue_size].abit = 1;
-    curproc->queue_size++;
-    return 0;
-  }
-  while(1) {
-    cprintf("Evicted a female");
-    //struct clock_queue_slot* cur_hand = &curproc->clock_queue[curproc->hand];
-    if(curproc->clock_queue[curproc->hand].abit == 0)
-      break;
-    curproc->clock_queue[curproc->hand].abit = 0;
-    curproc->hand = (curproc->hand + 1) % CLOCKSIZE;
-  }
-  mencrypt(curproc->clock_queue[curproc->hand].va, 1);
-  curproc->clock_queue[curproc->hand].va = va;
-  curproc->clock_queue[curproc->hand].abit = 1;
-  curproc->hand = (curproc->hand + 1) % CLOCKSIZE;
-  return 0;
-}
 int removepage(char* va) {
  
   struct proc* curproc = myproc();
@@ -61,14 +38,25 @@ int removepage(char* va) {
  return 0;
 }
 
+// int abitset(char* va){
+//   struct proc *curproc = myproc();
+//   for(int i = 0; i < CLOCKSIZE; i++){
+//     if(curproc->clock_queue[i].va == va){
+//       // cprintf("Found %p", va);
+//       return curproc->clock_queue[i].abit;
+//     }
+//   }
+//   return 0;
+// }
+
 
 int inwset(char* va){
   struct proc *curproc = myproc();
-  for(int i = 0; i < curproc->queue_size; i++){
-    if(curproc->clock_queue[i % CLOCKSIZE].va == va){
-      cprintf("Found %p", va);
+  for(int i = 0; i < CLOCKSIZE; i++){
+    if(curproc->clock_queue[i].va == va){
+      // cprintf("Found %p", va);
       return 1;
-  }
+    }
   }
   return 0;
 }
@@ -117,6 +105,41 @@ walkpgdir(pde_t *pgdir, const void *va, int alloc)
     *pde = V2P(pgtab) | PTE_P | PTE_W | PTE_U;
   }
   return &pgtab[PTX(va)];
+}
+
+int addtoworkingset(char* va){
+  struct proc* curproc = myproc();
+  
+  // cprintf("in the add");
+  if(curproc->queue_size < CLOCKSIZE) {
+    curproc->queue_size++;
+
+    for(int i = (curproc->hand + curproc->queue_size - 1) % curproc->queue_size; i+1< curproc->queue_size; i++){
+      curproc->clock_queue[i+1] = curproc->clock_queue[i];
+      if(i == curproc->hand)
+        curproc->hand = (curproc->hand + 1) % curproc->queue_size;
+    }
+    curproc->clock_queue[(curproc->hand + curproc->queue_size - 1) % curproc->queue_size].va = va;
+    // curproc->clock_queue[curproc->queue_size].abit = 1;
+    curproc->queue_size++;
+    
+    return 0;
+  }
+  while(1) {
+    // panic("here");
+    pte_t * curr_pte;
+    //struct clock_queue_slot* cur_hand = &curproc->clock_queue[curproc->hand];
+    curr_pte=walkpgdir(curproc->pgdir,curproc->clock_queue[curproc->hand].va,0);
+    if((*curr_pte & PTE_A) == 0)
+      break;
+    *curr_pte = *curr_pte & ~PTE_A;
+    // curproc->clock_queue[curproc->hand].abit = 0;
+    curproc->hand = (curproc->hand + 1) % CLOCKSIZE;
+  }
+  mencrypt(curproc->clock_queue[curproc->hand].va, 1);
+  curproc->clock_queue[curproc->hand].va = va;
+  curproc->hand = (curproc->hand + 1) % CLOCKSIZE;
+  return 0;
 }
 
 // Create PTEs for virtual addresses starting at va that refer to
@@ -480,6 +503,7 @@ copyout(pde_t *pgdir, uint va, void *p, uint len)
 int mdecrypt(char *virtual_addr) {
   //cprintf("mdecrypt: VPN %d, %p, pid %d\n", PPN(virtual_addr), virtual_addr, myproc()->pid);
   //the given pointer is a virtual address in this pid's userspace
+  // cprintf("in mdecrypt");
   struct proc * p = myproc();
   pde_t* mypd = p->pgdir;
   //set the present bit to true and encrypt bit to false
@@ -490,15 +514,19 @@ int mdecrypt(char *virtual_addr) {
 
   *pte = *pte & ~PTE_E;
   *pte = *pte | PTE_P;
-
+  *pte = *pte | PTE_A;
+  
   virtual_addr = (char *)PGROUNDDOWN((uint)virtual_addr);
+  
 
   char * slider = virtual_addr;
   for (int offset = 0; offset < PGSIZE; offset++) {
     *slider = ~*slider;
     slider++;
   }
+
   addtoworkingset(virtual_addr);
+
   return 0;
 }
 
@@ -537,6 +565,7 @@ int mencrypt(char *virtual_addr, int len) {
     }
     *mypte = *mypte & ~PTE_P;
     *mypte = *mypte | PTE_E;
+    *mypte = *mypte & ~PTE_A;
   }
 
   switchuvm(myproc());
@@ -548,19 +577,20 @@ int getpgtable(struct pt_entry* entries, int num, int wsetOnly) {
   if(wsetOnly != 0 && wsetOnly != 1)
     return -1;
   int index = 0;
+  int count=0;
   pte_t * curr_pte;
   //reverse order
+  if(wsetOnly){
+    num=num+1;
+  }
   
-  for (void * i = (void*) PGROUNDDOWN(((int)me->sz)); i >= 0 && index < num; i-=PGSIZE) {
+  for (void * i = (void*) PGROUNDDOWN(((int)me->sz)); i >= 0 && count < num; i-=PGSIZE) {
     //walk through the page table and read the entries
     
+    // count++;
 
-    if(wsetOnly){
-      if(!inwset(i)) {
-        num--; 
-	continue;
-      }
-    }
+    // num--;
+    // count++;
     //Those entries contain the physical page number + flags
     curr_pte = walkpgdir(me->pgdir, i, 0);
 
@@ -569,6 +599,20 @@ int getpgtable(struct pt_entry* entries, int num, int wsetOnly) {
     //see deallocuvm
     if (curr_pte && *curr_pte) {//this page is allocated
       //this is the same for all pt_entries... right?
+      // if(*curr_pte& PTE_U){
+      // count++;
+      // }
+      count++;
+      if(wsetOnly){
+        if(inwset(i)==0) {
+          // if(i != (void*) PGROUNDDOWN(((int)me->sz))){ 
+          // 
+          // num--;
+          // }
+	      continue;
+        }
+      }
+
       entries[index].pdx = PDX(i); 
       entries[index].ptx = PTX(i);
       //convert to physical addr then shift to get PPN 
@@ -577,12 +621,15 @@ int getpgtable(struct pt_entry* entries, int num, int wsetOnly) {
       entries[index].present = (*curr_pte & PTE_P) ? 1 : 0;
       entries[index].writable = (*curr_pte & PTE_W) ? 1 : 0;
       entries[index].encrypted = (*curr_pte & PTE_E) ? 1 : 0;
+      entries[index].ref       =  (*curr_pte & PTE_A)? 1:0;
       index++;
+      
     }
 
     if (i == 0) {
       break;
     }
+    
   }
   //index is the number of ptes copied
   return index;
