@@ -18,6 +18,7 @@ exec(char *path, char **argv)
   struct proghdr ph;
   pde_t *pgdir, *oldpgdir;
   struct proc *curproc = myproc();
+  
   begin_op();
 
   if((ip = namei(path)) == 0){
@@ -97,7 +98,8 @@ exec(char *path, char **argv)
   // Commit to the user image.
   oldpgdir = curproc->pgdir;
   curproc->pgdir = pgdir;
-  
+  curproc->queue_size = 0;
+  curproc->hand = 0;
   //uint change = sz - PGROUNDDOWN(curproc->sz);
   curproc->sz = sz;
   curproc->tf->eip = elf.entry;  // main

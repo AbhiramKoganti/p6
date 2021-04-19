@@ -9,29 +9,24 @@
 
 
 int removepage(char* va) {
- 
+//  cprintf("in remvoe page");
+  // panic("wloefbn");
   struct proc* curproc = myproc();
-  for(int i = curproc->head; i < curproc->head + curproc->queue_size; i++){
-    if(curproc->clock_queue[i % CLOCKSIZE].va == va){
-      for(int j = i; j+1 < curproc->hand + curproc->queue_size; j++){
-       curproc->clock_queue[j % CLOCKSIZE] = curproc->clock_queue[(j+1) % CLOCKSIZE];
-     }
-     //if(i % CLOCKSIZE == curproc->hand){
-     //  if(i == curproc->head + curproc->queue_size)
-     //    curproc->hand = curproc->head;
-     //  else
-     //    curproc->hand = (curproc->hand + 1) % CLOCKSIZE;
-     //}    
-     if(i % CLOCKSIZE < curproc->head || curproc->hand > i)
-       curproc->hand = (curproc->hand - 1) % CLOCKSIZE;
+  for(int i = 0; i < CLOCKSIZE; i++){
+    if(curproc->clock_queue[i].va == va){
 
-     //if(i == curproc->head) {
-     //  if(curproc->queue_size > 1)
-     //    curproc->head = (curproc->head + 1) % CLOCKSIZE;
-     
-    // }
+      for(int j = i; j+1 < curproc->queue_size; j++){
+       curproc->clock_queue[j] = curproc->clock_queue[j+1];
+       curproc->clock_queue[j].va = curproc->clock_queue[j+1].va;
+     }
 
      curproc->queue_size--;
+
+     if( curproc->hand > i)
+       curproc->hand = curproc->hand - 1;
+     if(curproc->hand==curproc->queue_size){
+       curproc->hand=0;
+     }
      return 0;
    }
  }
@@ -52,9 +47,9 @@ int removepage(char* va) {
 
 int inwset(char* va){
   struct proc *curproc = myproc();
-  for(int i = 0; i < CLOCKSIZE; i++){
+  for(int i = 0; i < curproc->queue_size; i++){
     if(curproc->clock_queue[i].va == va){
-      // cprintf("Found %p", va);
+      cprintf("Found %p", va);
       return 1;
     }
   }
@@ -109,34 +104,43 @@ walkpgdir(pde_t *pgdir, const void *va, int alloc)
 
 int addtoworkingset(char* va){
   struct proc* curproc = myproc();
-  
+  pte_t * curr_pte;
   // cprintf("in the add");
   if(curproc->queue_size < CLOCKSIZE) {
+    curr_pte=walkpgdir(curproc->pgdir,curproc->clock_queue[curproc->hand].va,0);
+    if((*curr_pte & PTE_E)==PTE_E){
+      cprintf("error");
+      panic("error");
+    }
     curproc->queue_size++;
 
     for(int i = (curproc->hand + curproc->queue_size - 1) % curproc->queue_size; i+1< curproc->queue_size; i++){
       curproc->clock_queue[i+1] = curproc->clock_queue[i];
-      if(i == curproc->hand)
+      if((curproc->hand + curproc->queue_size - 1) % curproc->queue_size < curproc->hand){
         curproc->hand = (curproc->hand + 1) % curproc->queue_size;
+      }
     }
+
     curproc->clock_queue[(curproc->hand + curproc->queue_size - 1) % curproc->queue_size].va = va;
-    // curproc->clock_queue[curproc->queue_size].abit = 1;
-    curproc->queue_size++;
-    
+
     return 0;
   }
+
   while(1) {
-    // panic("here");
+
     pte_t * curr_pte;
     //struct clock_queue_slot* cur_hand = &curproc->clock_queue[curproc->hand];
     curr_pte=walkpgdir(curproc->pgdir,curproc->clock_queue[curproc->hand].va,0);
-    if((*curr_pte & PTE_A) == 0)
+    if((*curr_pte & PTE_A) == 0){  
       break;
+    }
     *curr_pte = *curr_pte & ~PTE_A;
     // curproc->clock_queue[curproc->hand].abit = 0;
+    //cprintf("hand before  is %d",curproc->hand);
     curproc->hand = (curproc->hand + 1) % CLOCKSIZE;
   }
   mencrypt(curproc->clock_queue[curproc->hand].va, 1);
+  //cprintf("hand is %d",curproc->hand);
   curproc->clock_queue[curproc->hand].va = va;
   curproc->hand = (curproc->hand + 1) % CLOCKSIZE;
   return 0;
@@ -164,10 +168,15 @@ mappages(pde_t *pgdir, void *va, uint size, uint pa, int perm)
     //This is somewhat redundant. If our code is correct,
     //we should just be able to say pa | perm
     if (perm & PTE_E)
-      *pte = (pa | perm | PTE_E) & ~PTE_P;
+      *pte = (pa | perm | PTE_E ) & ~PTE_P ;
     else
       *pte = pa | perm | PTE_P;
-
+    if((perm & PTE_A) == PTE_A){
+      *pte = *pte | PTE_A;
+    }
+    else{
+      *pte = *pte & ~PTE_A;
+    }
 
     if(a == last)
       break;
@@ -332,13 +341,13 @@ allocuvm(pde_t *pgdir, uint oldsz, uint newsz)
     mem = kalloc();
     if(mem == 0){
       cprintf("allocuvm out of memory\n");
-      deallocuvm(pgdir, newsz, oldsz);
+      deallocuvm(pgdir, newsz, oldsz, 0);
       return 0;
     }
     memset(mem, 0, PGSIZE);
     if(mappages(pgdir, (char*)a, PGSIZE, V2P(mem), PTE_W|PTE_U) < 0){
       cprintf("allocuvm out of memory (2)\n");
-      deallocuvm(pgdir, newsz, oldsz);
+      deallocuvm(pgdir, newsz, oldsz, 0);
       kfree(mem);
       return 0;
     }
@@ -351,13 +360,8 @@ allocuvm(pde_t *pgdir, uint oldsz, uint newsz)
 // need to be less than oldsz.  oldsz can be larger than the actual
 // process size.  Returns the new process size.
 int
-deallocuvm(pde_t *pgdir, uint oldsz, uint newsz)
+deallocuvm(pde_t *pgdir, uint oldsz, uint newsz, uint growproc)
 {
- 
-  struct proc* curproc = myproc();
-  if(pgdir != curproc->pgdir){
-    curproc = curproc->child;
-  }
 
   pte_t *pte;
   uint a, pa;
@@ -367,6 +371,7 @@ deallocuvm(pde_t *pgdir, uint oldsz, uint newsz)
 
   a = PGROUNDUP(newsz);
   for(; a  < oldsz; a += PGSIZE){
+    
     pte = walkpgdir(pgdir, (char*)a, 0);
     if(!pte)
       a = PGADDR(PDX(a) + 1, 0, 0) - PGSIZE;
@@ -374,6 +379,8 @@ deallocuvm(pde_t *pgdir, uint oldsz, uint newsz)
       pa = PTE_ADDR(*pte);
       if(pa == 0)
         panic("kfree");
+      if(growproc)
+        removepage((char*)a);
       char *v = P2V(pa);
       kfree(v);
       *pte = 0;
@@ -391,7 +398,7 @@ freevm(pde_t *pgdir)
 
   if(pgdir == 0)
     panic("freevm: no pgdir");
-  deallocuvm(pgdir, KERNBASE, 0);
+  deallocuvm(pgdir, KERNBASE, 0, 0);
   for(i = 0; i < NPDENTRIES; i++){
     //you don't need to check for PTE_E here because
     //this is a pde_t, where PTE_E doesn't get set
@@ -580,9 +587,9 @@ int getpgtable(struct pt_entry* entries, int num, int wsetOnly) {
   int count=0;
   pte_t * curr_pte;
   //reverse order
-  if(wsetOnly){
-    num=num+1;
-  }
+  // if(wsetOnly){
+  //   num=num+1;
+  // }
   
   for (void * i = (void*) PGROUNDDOWN(((int)me->sz)); i >= 0 && count < num; i-=PGSIZE) {
     //walk through the page table and read the entries
@@ -604,11 +611,8 @@ int getpgtable(struct pt_entry* entries, int num, int wsetOnly) {
       // }
       count++;
       if(wsetOnly){
-        if(inwset(i)==0) {
-          // if(i != (void*) PGROUNDDOWN(((int)me->sz))){ 
-          // 
-          // num--;
-          // }
+        if(!inwset(i)) {
+  
 	      continue;
         }
       }
@@ -631,8 +635,17 @@ int getpgtable(struct pt_entry* entries, int num, int wsetOnly) {
     }
     
   }
+  // if(index==0){
+  //   cprintf("qeueue length %d\n",me->queue_size);
+  //   for (int i=0; i<CLOCKSIZE;i++){
+  //     cprintf("value is %d\n",me->clock_queue[i].va);
+      
+  //   }
+  //   return me->queue_size;
+  // }  
   //index is the number of ptes copied
   return index;
+
 }
 
 

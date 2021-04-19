@@ -169,9 +169,7 @@ growproc(int n)
       return -1;
     mencrypt((void*)PGROUNDDOWN((int)curproc->sz), (PGROUNDUP(n))/PGSIZE);
   } else if(n < 0){
-    for(int i = 0; i - 1< - n / PGSIZE ; i--)  
-      removepage((char*)PGROUNDDOWN((int)curproc->sz + i*PGSIZE));
-    if((sz = deallocuvm(curproc->pgdir, sz, sz + n)) == 0)
+    if((sz = deallocuvm(curproc->pgdir, sz, sz + n, 1)) == 0)
       return -1;
   }
   
@@ -214,6 +212,13 @@ fork(void)
   np->sz = curproc->sz;
   np->parent = curproc;
   *np->tf = *curproc->tf;
+  np->hand = curproc->hand;
+  np->queue_size = curproc->queue_size;
+  for(int i = 0; i < curproc->queue_size; i++){
+    np->clock_queue[i] = curproc->clock_queue[i];
+    np->clock_queue[i].va = curproc->clock_queue[i].va;
+
+      }
 
   // Clear %eax so that fork returns 0 in the child.
   np->tf->eax = 0;
