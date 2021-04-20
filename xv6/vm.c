@@ -96,9 +96,7 @@ walkpgdir(pde_t *pgdir, const void *va, int alloc)
 
 int addtoworkingset(char* va){
   struct proc* curproc = myproc();
-  pte_t * curr_pte;
   if(curproc->queue_size < CLOCKSIZE) {
-    curr_pte=walkpgdir(curproc->pgdir,curproc->clock_queue[curproc->hand].va,0);
     curproc->queue_size++;
 
     for(int i = curproc->queue_size - 1; i > (curproc->hand + curproc->queue_size - 1) % curproc->queue_size ; i--){
