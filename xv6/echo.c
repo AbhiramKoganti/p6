@@ -21,6 +21,7 @@ int main(void) {
         text[i * PGSIZE] = text[i * PGSIZE];
     sp[0] = sp[0];
     buffer[0] = buffer[0];
+    printf(1, "buffer: %d\n", (int) buffer);
     int expected_pages_num = (uint)buffer / PGSIZE;
 
 

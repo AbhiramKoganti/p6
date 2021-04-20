@@ -1,5 +1,5 @@
 80100000 .text
-8010932c .rodata
+80109330 .rodata
 8010a000 .data
 8010c5a0 .bss
 00000000 .debug_line
@@ -521,7 +521,7 @@
 0000002c _binary_initcode_size
 801076b7 vector147
 80105120 initsleeplock
-801092d4 dump_rawphymem
+801092d6 dump_rawphymem
 801027af ideinit
 801088e5 loaduvm
 801074fb vector104

@@ -530,150 +530,121 @@ memmove(void *vdst, const void *vsrc, int n)
  386:	c3                   	ret    
 
 00000387 <fork>:
-  name: \
-    movl $SYS_ ## name, %eax; \
-    int $T_SYSCALL; \
-    ret
-
-SYSCALL(fork)
  387:	b8 01 00 00 00       	mov    $0x1,%eax
  38c:	cd 40                	int    $0x40
  38e:	c3                   	ret    
 
 0000038f <exit>:
-SYSCALL(exit)
  38f:	b8 02 00 00 00       	mov    $0x2,%eax
  394:	cd 40                	int    $0x40
  396:	c3                   	ret    
 
 00000397 <wait>:
-SYSCALL(wait)
  397:	b8 03 00 00 00       	mov    $0x3,%eax
  39c:	cd 40                	int    $0x40
  39e:	c3                   	ret    
 
 0000039f <pipe>:
-SYSCALL(pipe)
  39f:	b8 04 00 00 00       	mov    $0x4,%eax
  3a4:	cd 40                	int    $0x40
  3a6:	c3                   	ret    
 
 000003a7 <read>:
-SYSCALL(read)
  3a7:	b8 05 00 00 00       	mov    $0x5,%eax
  3ac:	cd 40                	int    $0x40
  3ae:	c3                   	ret    
 
 000003af <write>:
-SYSCALL(write)
  3af:	b8 10 00 00 00       	mov    $0x10,%eax
  3b4:	cd 40                	int    $0x40
  3b6:	c3                   	ret    
 
 000003b7 <close>:
-SYSCALL(close)
  3b7:	b8 15 00 00 00       	mov    $0x15,%eax
  3bc:	cd 40                	int    $0x40
  3be:	c3                   	ret    
 
 000003bf <kill>:
-SYSCALL(kill)
  3bf:	b8 06 00 00 00       	mov    $0x6,%eax
  3c4:	cd 40                	int    $0x40
  3c6:	c3                   	ret    
 
 000003c7 <exec>:
-SYSCALL(exec)
  3c7:	b8 07 00 00 00       	mov    $0x7,%eax
  3cc:	cd 40                	int    $0x40
  3ce:	c3                   	ret    
 
 000003cf <open>:
-SYSCALL(open)
  3cf:	b8 0f 00 00 00       	mov    $0xf,%eax
  3d4:	cd 40                	int    $0x40
  3d6:	c3                   	ret    
 
 000003d7 <mknod>:
-SYSCALL(mknod)
  3d7:	b8 11 00 00 00       	mov    $0x11,%eax
  3dc:	cd 40                	int    $0x40
  3de:	c3                   	ret    
 
 000003df <unlink>:
-SYSCALL(unlink)
  3df:	b8 12 00 00 00       	mov    $0x12,%eax
  3e4:	cd 40                	int    $0x40
  3e6:	c3                   	ret    
 
 000003e7 <fstat>:
-SYSCALL(fstat)
  3e7:	b8 08 00 00 00       	mov    $0x8,%eax
  3ec:	cd 40                	int    $0x40
  3ee:	c3                   	ret    
 
 000003ef <link>:
-SYSCALL(link)
  3ef:	b8 13 00 00 00       	mov    $0x13,%eax
  3f4:	cd 40                	int    $0x40
  3f6:	c3                   	ret    
 
 000003f7 <mkdir>:
-SYSCALL(mkdir)
  3f7:	b8 14 00 00 00       	mov    $0x14,%eax
  3fc:	cd 40                	int    $0x40
  3fe:	c3                   	ret    
 
 000003ff <chdir>:
-SYSCALL(chdir)
  3ff:	b8 09 00 00 00       	mov    $0x9,%eax
  404:	cd 40                	int    $0x40
  406:	c3                   	ret    
 
 00000407 <dup>:
-SYSCALL(dup)
  407:	b8 0a 00 00 00       	mov    $0xa,%eax
  40c:	cd 40                	int    $0x40
  40e:	c3                   	ret    
 
 0000040f <getpid>:
-SYSCALL(getpid)
  40f:	b8 0b 00 00 00       	mov    $0xb,%eax
  414:	cd 40                	int    $0x40
  416:	c3                   	ret    
 
 00000417 <sbrk>:
-SYSCALL(sbrk)
  417:	b8 0c 00 00 00       	mov    $0xc,%eax
  41c:	cd 40                	int    $0x40
  41e:	c3                   	ret    
 
 0000041f <sleep>:
-SYSCALL(sleep)
  41f:	b8 0d 00 00 00       	mov    $0xd,%eax
  424:	cd 40                	int    $0x40
  426:	c3                   	ret    
 
 00000427 <uptime>:
-SYSCALL(uptime)
  427:	b8 0e 00 00 00       	mov    $0xe,%eax
  42c:	cd 40                	int    $0x40
  42e:	c3                   	ret    
 
 0000042f <mencrypt>:
-SYSCALL(mencrypt)
  42f:	b8 16 00 00 00       	mov    $0x16,%eax
  434:	cd 40                	int    $0x40
  436:	c3                   	ret    
 
 00000437 <getpgtable>:
-SYSCALL(getpgtable)
  437:	b8 17 00 00 00       	mov    $0x17,%eax
  43c:	cd 40                	int    $0x40
  43e:	c3                   	ret    
 
 0000043f <dump_rawphymem>:
-SYSCALL(dump_rawphymem)
  43f:	b8 18 00 00 00       	mov    $0x18,%eax
  444:	cd 40                	int    $0x40
  446:	c3                   	ret    
