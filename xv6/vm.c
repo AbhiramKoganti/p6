@@ -9,16 +9,17 @@
 
 
 int removepage(char* va) {
-//  cprintf("in remvoe page");
+cprintf("in remvoe page %p ",va);
   // panic("wloefbn");
   struct proc* curproc = myproc();
   for(int i = 0; i < CLOCKSIZE; i++){
     if(curproc->clock_queue[i].va == va){
 
-      for(int j = i; j+1 < curproc->queue_size; j++){
+    for(int j = i; j+1 < curproc->queue_size; j++){
        curproc->clock_queue[j] = curproc->clock_queue[j+1];
        curproc->clock_queue[j].va = curproc->clock_queue[j+1].va;
-     }
+    }
+    // curproc->clock_queue[curproc->queue_size-1].va = 0;
 
      curproc->queue_size--;
 
@@ -27,6 +28,12 @@ int removepage(char* va) {
      if(curproc->hand==curproc->queue_size){
        curproc->hand=0;
      }
+     cprintf("hand %d ",curproc->hand);
+         for (int i=0; i<CLOCKSIZE;i++){
+      cprintf(" value %p ",curproc->clock_queue[i].va);
+      
+    }
+    cprintf("\n");
      return 0;
    }
  }
@@ -47,9 +54,10 @@ int removepage(char* va) {
 
 int inwset(char* va){
   struct proc *curproc = myproc();
+  // int count=0;
   for(int i = 0; i < curproc->queue_size; i++){
     if(curproc->clock_queue[i].va == va){
-      cprintf("Found %p", va);
+      // cprintf("Found %p", va);
       return 1;
     }
   }
@@ -105,8 +113,14 @@ walkpgdir(pde_t *pgdir, const void *va, int alloc)
 int addtoworkingset(char* va){
   struct proc* curproc = myproc();
   pte_t * curr_pte;
-  // cprintf("in the add");
+  cprintf(" page %p ",va);
+  cprintf("hand %d ",curproc->hand);
+  cprintf("%d ",curproc->queue_size);
   if(curproc->queue_size < CLOCKSIZE) {
+    // cprintf("queue size is %d",curproc->queue_size);
+    // cprintf(" pid is %d",curproc->pid);
+    // cprintf("parent pid is %d\n",curproc->parent->pid);
+
     curr_pte=walkpgdir(curproc->pgdir,curproc->clock_queue[curproc->hand].va,0);
     if((*curr_pte & PTE_E)==PTE_E){
       cprintf("error");
@@ -114,24 +128,28 @@ int addtoworkingset(char* va){
     }
     curproc->queue_size++;
 
-    for(int i = (curproc->hand + curproc->queue_size - 1) % curproc->queue_size; i+1< curproc->queue_size; i++){
-      curproc->clock_queue[i+1] = curproc->clock_queue[i];
+    for(int i = curproc->queue_size - 1; i > (curproc->hand + curproc->queue_size - 1) % curproc->queue_size ; i--){
+      curproc->clock_queue[i] = curproc->clock_queue[i - 1];
       if((curproc->hand + curproc->queue_size - 1) % curproc->queue_size < curproc->hand){
         curproc->hand = (curproc->hand + 1) % curproc->queue_size;
       }
     }
-
+   
     curproc->clock_queue[(curproc->hand + curproc->queue_size - 1) % curproc->queue_size].va = va;
-
+    for (int i=0; i<CLOCKSIZE;i++){
+      cprintf(" value %p ",curproc->clock_queue[i].va);
+      
+    }
+    cprintf("\n");
     return 0;
   }
 
   while(1) {
-
+    // cprintf("error");
     pte_t * curr_pte;
     //struct clock_queue_slot* cur_hand = &curproc->clock_queue[curproc->hand];
     curr_pte=walkpgdir(curproc->pgdir,curproc->clock_queue[curproc->hand].va,0);
-    if((*curr_pte & PTE_A) == 0){  
+    if(!((*curr_pte & PTE_A) == PTE_A)){  
       break;
     }
     *curr_pte = *curr_pte & ~PTE_A;
@@ -143,6 +161,11 @@ int addtoworkingset(char* va){
   //cprintf("hand is %d",curproc->hand);
   curproc->clock_queue[curproc->hand].va = va;
   curproc->hand = (curproc->hand + 1) % CLOCKSIZE;
+    for (int i=0; i<CLOCKSIZE;i++){
+      cprintf(" value %p ",curproc->clock_queue[i].va);
+      
+    }
+    cprintf("\n");
   return 0;
 }
 
@@ -379,11 +402,14 @@ deallocuvm(pde_t *pgdir, uint oldsz, uint newsz, uint growproc)
       pa = PTE_ADDR(*pte);
       if(pa == 0)
         panic("kfree");
-      if(growproc)
+      if(growproc){
         removepage((char*)a);
+
+      }
       char *v = P2V(pa);
       kfree(v);
       *pte = 0;
+
     }
   }
   return newsz;
@@ -531,7 +557,11 @@ int mdecrypt(char *virtual_addr) {
     *slider = ~*slider;
     slider++;
   }
-
+    //   for (int i=0; i<CLOCKSIZE;i++){
+    //   cprintf(" value_r %p ",myproc()->clock_queue[i].va);
+      
+    // }
+    // cprintf("\n");
   addtoworkingset(virtual_addr);
 
   return 0;
@@ -587,18 +617,12 @@ int getpgtable(struct pt_entry* entries, int num, int wsetOnly) {
   int count=0;
   pte_t * curr_pte;
   //reverse order
-  // if(wsetOnly){
-  //   num=num+1;
-  // }
+  if(wsetOnly){
+    num=num+1;
+  }
   
   for (void * i = (void*) PGROUNDDOWN(((int)me->sz)); i >= 0 && count < num; i-=PGSIZE) {
-    //walk through the page table and read the entries
-    
-    // count++;
 
-    // num--;
-    // count++;
-    //Those entries contain the physical page number + flags
     curr_pte = walkpgdir(me->pgdir, i, 0);
 
 
@@ -611,6 +635,9 @@ int getpgtable(struct pt_entry* entries, int num, int wsetOnly) {
       // }
       count++;
       if(wsetOnly){
+        if((*curr_pte & PTE_P)){
+          cprintf("page fris %p\n",i);
+        }
         if(!inwset(i)) {
   
 	      continue;
@@ -636,12 +663,12 @@ int getpgtable(struct pt_entry* entries, int num, int wsetOnly) {
     
   }
   // if(index==0){
-  //   cprintf("qeueue length %d\n",me->queue_size);
-  //   for (int i=0; i<CLOCKSIZE;i++){
-  //     cprintf("value is %d\n",me->clock_queue[i].va);
+  //   // cprintf("qeueue length %d\n",me->queue_size);
+  //   // for (int i=0; i<CLOCKSIZE;i++){
+  //   //   cprintf("value is %p\n",me->clock_queue[i].va);
       
-  //   }
-  //   return me->queue_size;
+  //   // }
+  //   return me->hand;
   // }  
   //index is the number of ptes copied
   return index;

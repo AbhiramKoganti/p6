@@ -18,7 +18,7 @@ exec(char *path, char **argv)
   struct proghdr ph;
   pde_t *pgdir, *oldpgdir;
   struct proc *curproc = myproc();
-  
+
   begin_op();
 
   if((ip = namei(path)) == 0){
@@ -98,16 +98,36 @@ exec(char *path, char **argv)
   // Commit to the user image.
   oldpgdir = curproc->pgdir;
   curproc->pgdir = pgdir;
-  curproc->queue_size = 0;
-  curproc->hand = 0;
+
+  cprintf("in exec");
+
+
   //uint change = sz - PGROUNDDOWN(curproc->sz);
   curproc->sz = sz;
   curproc->tf->eip = elf.entry;  // main
   curproc->tf->esp = sp;
+
+    
   switchuvm(curproc);
+    //   for (int i=0;curproc->queue_size>i;i++){
+    //   // cprintf("the addy is %p\n",curproc->clock_queue[i].va);
+    // // if(curproc->clock_queue[i].va!=0){
+    // // mencrypt(curproc->clock_queue[i].va,1);
+    // // }
+    // // curproc->clock_queue[i].va=0;
+    // }
+    curproc->queue_size=0;
+    curproc->hand=0;
+  //     
+  // }
+  // curproc->queue_size = 0;
+  // curproc->hand = 0;
+  // for (int i=PGROUNDDOWN(curproc->sz);i>=0;i-=PGSIZE){
+  // mencrypt((char*)i,1)
   mencrypt(0, sz/PGSIZE - 2);
   mencrypt((char*) sz - PGSIZE, 1);//(void*)PGROUNDDOWN((int)sz - change), change/PGSIZE);
  // cprintf("%d\n", sz);
+  // }
  // cprintf("%d\n", change);
 
   freevm(oldpgdir);

@@ -81,6 +81,8 @@ trap(struct trapframe *tf)
   case T_PGFLT:
     //get the virtual address that caused the fault
     addr = (char*)rcr2();
+    cprintf("the addr is %p\n",(char *)PGROUNDDOWN((uint)addr))
+    ;
     if (!mdecrypt(addr)) {
       //"break" means don't go to the default
       //default kills the process

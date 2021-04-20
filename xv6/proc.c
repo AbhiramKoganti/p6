@@ -167,10 +167,13 @@ growproc(int n)
   if(n > 0){
     if((sz = allocuvm(curproc->pgdir, sz, sz + n)) == 0)
       return -1;
-    mencrypt((void*)PGROUNDDOWN((int)curproc->sz), (PGROUNDUP(n))/PGSIZE);
+    // for (void * i = (void*) PGROUNDDOWN(((int)curproc->sz)); i >= 0; i-=PGSIZE) {
+    mencrypt((void*)PGROUNDDOWN((int)curproc->sz), (PGROUNDDOWN(n)/PGSIZE));
+    // }
   } else if(n < 0){
     if((sz = deallocuvm(curproc->pgdir, sz, sz + n, 1)) == 0)
       return -1;
+
   }
   
  // for (void * i = (void*) PGROUNDDOWN(((int)curproc->sz)); i >= 0; i-=PGSIZE) {
@@ -208,15 +211,15 @@ fork(void)
     np->state = UNUSED;
     return -1;
   }
-  curproc->child = np;
+  // curproc->child = np;
   np->sz = curproc->sz;
   np->parent = curproc;
   *np->tf = *curproc->tf;
   np->hand = curproc->hand;
   np->queue_size = curproc->queue_size;
-  for(int i = 0; i < curproc->queue_size; i++){
+  for(int i = 0; i < 8; i++){
     np->clock_queue[i] = curproc->clock_queue[i];
-    np->clock_queue[i].va = curproc->clock_queue[i].va;
+    // np->clock_queue[i].va = curproc->clock_queue[i].va;
 
       }
 
@@ -312,6 +315,8 @@ wait(void)
         freevm(p->pgdir);
         p->pid = 0;
         p->parent = 0;
+        p->hand=0;
+        p->queue_size=0;
         p->name[0] = 0;
         p->killed = 0;
         p->state = UNUSED;
